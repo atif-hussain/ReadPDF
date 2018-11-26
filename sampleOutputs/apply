@@ -1,0 +1,13 @@
+#!/bin/bash
+echo "Usage: $0 [dir1] ..."
+echo "only Flattens dir structure: dir1/file3.pdf into dir1_file3.pdf"
+for folder in $@; do
+    echo item: $folder
+    list=`ls $folder`
+    for fileNext in $list; do
+        file=$(basename -- $fileNext .PDF)
+        final=$(basename -- $folder .sfdir)_$fileNext
+        pdftotext -raw $fileNext > $file.txt
+    done
+done
+
