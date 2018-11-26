@@ -28,11 +28,11 @@ ReadPDF performs two functions to make a regular digital-PDF readable.
   
 2. fix text layout ordering. For this update section(x, y) function, and text is ordered in this order in output file. 
 
-../run40.sh m1.pdf
-make
-./pdfCleanse extract -o 42 -d 42b m1.pdf
-./pdfCleanse reorder 42b > 42c
-./pdfCleanse write -o 42 -d 42b~ m1.pdf
-pdftotext -f 3 -l 3 -raw m1.PDF > m1.txt
+  ../run40.sh m1.pdf;
+  make;
+  ./pdfCleanse extract -o 42 -d 42b m1.pdf;
+  ./pdfCleanse reorder 42b > 42c;
+  ./pdfCleanse write -o 42 -d 42b~ m1.pdf;
+  pdftotext -f 3 -l 3 -raw m1.PDF > m1.txt;
 
 Requirements: Linux built-ins, pdf2htmlEX, fontforge, & inkscape SVG viewer.
