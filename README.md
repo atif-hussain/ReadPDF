@@ -49,4 +49,7 @@ ReadPDF performs two functions to make a regular digital-PDF readable.
   - ReadPDF filename.pdf                          # Remaps unicode's in /ToUnicode, & Reorders text in /Contents streams
 
 *Requirements:* 
-Linux built-ins, pdf2htmlEX, fontforge, & inkscape SVG viewer.
+ - Linux built-ins:
+    - pdf2htmlEX, fontforge, to generate font glyph files
+    - inkscape or any SVG viewer
+    - podofo library to manipulate PDF
