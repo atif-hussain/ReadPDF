@@ -127,7 +127,7 @@ int main (int argc, char *argv[]) {
             if (!pdf.IsLoaded()) { printf("Opening %s failed, skipping.\n", argv[f]); continue; }
 
             char* base =  mybasename(argv[f]);
-            strcpy(_localFolder, base); strcat(_localFolder, "-glyphs-f0/");
+            strcpy(_localFolder, "glyphs-"); strcat(_localFolder, base); strcat(_localFolder, "-f0/");
             objs = pdf.GetObjects();  std::cout << " having #objects = " << objs.GetSize();
             for( int i=0; i<objs.GetSize(); i++) {
                 showObject( objs[i], "\n");
@@ -210,7 +210,7 @@ void fetchPremappedGlyphs( const char* premappedFolder, std::regex ptrn, const c
         std::regex_search( ent->d_name, reslt, std::regex("[0-9A-Fa-f]{4}+"));
         cmap[glyph] = reslt[0];
 
-        std::string cmd("cp "); cmd += std::string(premappedFolder) += std::string(ent->d_name)
+        std::string cmd("cp -a "); cmd += std::string(premappedFolder) += std::string(ent->d_name)
                      += std::string(" ") += std::string(savesFolder) += std::string(ent->d_name);
         boost::replace_all( cmd, "(", "\\("); boost::replace_all( cmd, ")", "\\)");
         system(cmd.c_str());
@@ -319,7 +319,9 @@ void recodeStreamToUnicode( PdfDictionary* fontdict) { //for this /Font
     PdfObject * nameobj = fontdict->GetKey(PdfName("BaseFont"));
     if (nameobj->IsReference())  nameobj = objs.GetObject( nameobj->GetReference());
     std::string font = (nameobj->IsName())? nameobj->GetName().GetName() : "Unknown Font";
-    if (!std::regex_search(font, std::regex("Mangal"))) return;
+    for (auto& baseFont: {"Arial", "Times", "Courier"})  //skip known English fonts
+    //char baseFont[] = "Mangal";
+        if (std::regex_search(font, std::regex(baseFont))) return;
     std::cout << " \n\n/BaseFont=" << font << " being updated.";
 
     // Fetch /ToUnicode stream
@@ -349,7 +351,7 @@ void recodeStreamToUnicode( PdfDictionary* fontdict) { //for this /Font
     boost::replace_all( catlines, "<[", "[<");
     boost::replace_all( catlines, "]>", ">]");
 
-    uni_map_str->Set( catlines.c_str(), catlines.size());
+    uni_map_str->Set( catlines.c_str(), catlines.size(), PdfFilterFactory::CreateFilterList(obj));
 }
 #undef printf
 
@@ -402,8 +404,9 @@ void recodeCMap (const char* path_prefix, std::string& cmapping)
         std::string unicode2;
         do {
             std::ifstream f(glyphfile.c_str()); if (!f.good()) return;
-            std::cout << "/ToUnicode CMap:"<<chcode<<"->"<<unicode1<<"(" <<convert.to_bytes(codept)<< "). Accept or Enter new: " << std::flush;
+            std::cout << glyphfile << " /ToUnicode CMap:"<<chcode<<"->"<<unicode1<<"(" <<convert.to_bytes(codept)<< "). Accept or Enter new: " << std::flush;
             std::string open_glyph("inkscape "); open_glyph += glyphfile;
+            boost::replace_all( open_glyph, "(", "\\("); boost::replace_all( open_glyph, ")", "\\)");
             system(open_glyph.c_str()); //("inkscape testdoc-f4-glyphs/002A.svg");
 
             getline( std::cin, unicode2);
@@ -442,6 +445,7 @@ void recodeCMap (const char* path_prefix, std::string& cmapping)
                 newfile = newfile.substr(newfile.find_last_of("/\\") + 1);
                 std::string copycmd("cp "); copycmd .append(glyphfile) .append(" ") .append(_savesFolder)
                         .append(newfile) .append("_") .append(chcode) .append("_") .append(unicode2) .append(".svg");
+                boost::replace_all( copycmd, "(", "\\("); boost::replace_all( copycmd, ")", "\\)");
                 std::cout << copycmd << std::endl;
                 system(copycmd.c_str());
 
@@ -499,7 +503,7 @@ struct State {
 
 };
 
-//#define printf(fmt, ...)
+#define printf(fmt, ...)
 void writeback( std::vector<State>& groups, State current, std::string& catlines)
 {
     std::stable_sort( groups.begin(), groups.end(), [](State g1, State g2) {
@@ -605,7 +609,7 @@ const char* reorderText (char *orig, pdf_long& l) {
             catlines.append("ET\n"); printf("ET\n");
             continue;
         }
-//#define printf(fmt, ...)
+#define printf(fmt, ...)
         // Now, these are actions within a txtMode
 
         // set_state(), just record this state & apply to all subsequent lines ..into State current
@@ -686,7 +690,7 @@ void reorderTextObj (PdfObject* obj)
     printf("\n***** /Contents text stream of length %ld *****\n", contents_str->GetLength());
 
     const char* catlines = reorderText(orig, l);
-    contents_str->Set( catlines, l);
+    contents_str->Set( catlines, l, PdfFilterFactory::CreateFilterList(obj));
 }
 
 #undef printf
