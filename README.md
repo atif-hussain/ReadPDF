@@ -28,11 +28,25 @@ ReadPDF performs two functions to make a regular digital-PDF readable.
   
 2. fix text layout ordering. For this update section(x, y) function, and text is ordered in this order in output file. 
 
-- ../run40.sh m1.pdf;
-- make;
-- ./pdfCleanse extract -o 42 -d 42b m1.pdf;
-- ./pdfCleanse reorder 42b > 42c;
-- ./pdfCleanse write -o 42 -d 42b~ m1.pdf;
-- pdftotext -f 3 -l 3 -raw m1.PDF > m1.txt;
+*Available Files*
+- ../run40.sh preprocessing script to extract all glyphs from pdf
+- ReadPDF     source code of main application. run as one of 
+    - ReadPDF extract -o 13 -d obj13.dump my.pdf   - extracts unfiltered obj#13 from my.pdf to obj13.dump
+	  - ReadPDF write -o 13 -d obj13.dump my.pdf   - write/replace obj#13: obj13.dump in my.pdf as my.pdf~
+	  - ReadPDF reorder obj13.dump      - edits /Content stream: Combine ET..BT blocks, & Rearranges text
+	  - ReadPDF fix (0-3) my.pdf, ...   - Fix unicode mappings (if 1,3), & reorder text layout (if 2,3) in my.pdf & write to my.PDF
 
-Requirements: Linux built-ins, pdf2htmlEX, fontforge, & inkscape SVG viewer.
+- CMakeLists.txt     cmake file to build the application; build using mkdir build; cd build; cmake ..; make; 
+
+*Instructions to Use*
+  - ../run40.sh m1.pdf;
+  - cmake ..;         # requires sudo apt install podofo
+  - make;
+  - ./ReadPDF extract -o 42 -d 42.dump m1.pdf;     # extract particular object stream to a dump file
+  - ./ReadPDF reorder 42.dump > 42c;               # reorder text within /Contents object stream, as per section(x,y) which defines ordering of x,y regions in Page template writes to filename~
+  - ./ReadPDF write -o 42 -d 42.dump~ m1.pdf;     # write back given object stream back into PDF file, .pdf as .PDF
+  - pdftotext -f 3 -l 3 -raw m1.PDF > m1.txt;     # extract text from page 3 to page 3 of PDF in content stream order
+  - ReadPDF filename.pdf                          # Remaps unicode's in /ToUnicode, & Reorders text in /Contents streams
+
+*Requirements:* 
+Linux built-ins, pdf2htmlEX, fontforge, & inkscape SVG viewer.
