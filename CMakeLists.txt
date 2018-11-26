@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8.3)
-project (pdfCleanse)
+project (ReadPDF)
 
-#set_property(TARGET pdfCleanse PROPERTY CXX_STANDARD 11)
+#set_property(TARGET ReadPDF PROPERTY CXX_STANDARD 11)
 add_definitions(-std=c++11)
 add_definitions(-g)
 
@@ -18,6 +18,6 @@ link_directories (
 #add_subdirectory (MathFunctions) 
  
 # add the executable
-add_executable(pdfCleanse pdfCleanse.cpp)
-target_link_libraries (pdfCleanse podofo freetype fontconfig jpeg z pthread unistring crypto idn )
+add_executable(ReadPDF ReadPDF.cpp)
+target_link_libraries (ReadPDF podofo freetype fontconfig jpeg z pthread unistring crypto idn )
 
