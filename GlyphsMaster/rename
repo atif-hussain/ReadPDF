@@ -1,0 +1,14 @@
+#!/bin/bash
+shopt -s extglob
+echo "Usage: $0 [file1.PDF] ..."
+#for folder in $@; do
+#    echo item: $folder
+#    list=`ls $folder`
+    for fileNext in $@; do
+        echo ; echo $fileNext
+        s=$fileNext
+        file=${s//+(\.svg)}
+        mv $fileNext $file.svg
+    done
+#done
+
