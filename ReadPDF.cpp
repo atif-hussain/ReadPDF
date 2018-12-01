@@ -22,7 +22,7 @@ const auto IGNORE = std::regex_constants::icase;
 #define LLL(n) {for (int i=0; i<n; i++) std::cout << "*"; std::cout << std::endl; }
 
 //locations where glyphs for current pdf are found, orig-premapped are present, and this run saves are stored
-char _localFolder[99] = "glyphs-document-name-f4/",
+char _localFolder[99] = "glyphs-documentname-f4/",
      _premappedFolder[] = "../GlyphsMaster/",
      _savesFolder[] = "../Glyphs-NewUniq/";
 
@@ -218,7 +218,7 @@ void fetchPremappedGlyphs( const char* premappedFolder, std::regex ptrn, const c
     std::cout << "read " << count << " svg files; #unique glyphs are now " << cmap.size() << std::endl;
 }
 
-#define printf(fmt, ...)
+//#define printf(fmt, ...)
 void showObject (PdfObject* obj, const char* indent)
 {
     /* show current Object-Ref (& its size) */
@@ -240,9 +240,9 @@ void traceObject (int func, PdfObject* obj, const char* indent)
      *   Number-2345
      *   Reference[reference-string]
     */
-    printf("%s", indent);
     PdfName name = obj->GetDataTypeString();
-    printf("%s", name.GetName().c_str());
+    printf("%s", indent);
+    //printf("%s", name.GetName().c_str());
 
     EPdfDataType type = obj->GetDataType();
     switch (type)
@@ -273,6 +273,7 @@ void traceObject (int func, PdfObject* obj, const char* indent)
         break;
 
     case ePdfDataType_Array:
+        printf("%s", name.GetName().c_str());
         printf("-%ld{", obj->GetArray().GetSize());
         for (int j=0; j<obj->GetArray().GetSize(); j++)
             traceObject (func, &(obj->GetArray()[j]), ", ");
@@ -281,6 +282,7 @@ void traceObject (int func, PdfObject* obj, const char* indent)
 
     case ePdfDataType_Dictionary:
         {PdfDictionary dict = obj->GetDictionary();
+        printf("%s", name.GetName().c_str());
          printf("-%ld{", dict.GetSize());
 
         for (TCIKeyMap it = dict.begin(); it != dict.end(); it++) {
@@ -288,7 +290,7 @@ void traceObject (int func, PdfObject* obj, const char* indent)
             traceObject (func, it->second, "=");
             if (func & FIX_UNICODE) if (it->first == PdfName("ToUnicode")) recodeStreamToUnicode(&dict);
             if (func & REORDER_LAYOUT) if (it->first == PdfName("Contents")) reorderTextObj(it->second);
-        } }
+        } printf("}"); }
         break;
 
     case ePdfDataType_Reference:
@@ -344,6 +346,7 @@ void recodeStreamToUnicode( PdfDictionary* fontdict) { //for this /Font
 
         // Recode
         recodeCMap( _localFolder, line);
+        printf ("\t%s", line.c_str());
 
         lines.push_back(line);
         catlines.append(line).append("\n");
@@ -353,7 +356,6 @@ void recodeStreamToUnicode( PdfDictionary* fontdict) { //for this /Font
 
     uni_map_str->Set( catlines.c_str(), catlines.size(), PdfFilterFactory::CreateFilterList(obj));
 }
-#undef printf
 
 void recodeCMap (const char* path_prefix, std::string& cmapping)
 {
@@ -381,7 +383,7 @@ void recodeCMap (const char* path_prefix, std::string& cmapping)
         else if (*j>='A') codept = (codept<<4)+ (*j)-'A'+10;
         else codept = (codept<<4)+ (*j)-'0';
 
-    std::string glyphfile = std::string(path_prefix); glyphfile += (std::string("00")) += chcode += std::string(".svg");
+    std::string glyphfile = std::string(path_prefix); glyphfile .append("00") .append(chcode) .append(".svg");
     std::string glyph = readGlyph (glyphfile.c_str());
 
 
@@ -455,6 +457,7 @@ void recodeCMap (const char* path_prefix, std::string& cmapping)
         } while (true);
     }
 }
+//#undef printf
 
 int section (int x, int y) {
     /* This Programme orders text in PDF pages by increasing section number.
@@ -503,18 +506,19 @@ struct State {
 
 };
 
-#define printf(fmt, ...)
+//#define printf(fmt, ...)
 void writeback( std::vector<State>& groups, State current, std::string& catlines)
 {
+    State final = groups.back();
     std::stable_sort( groups.begin(), groups.end(), [](State g1, State g2) {
-        return (g1.s!=g2.s)?(g1.s<g2.s) : (abs(g1.Td.y-g2.Td.y)>100)?(g1.Td.y>g2.Td.y) : (g1.Td.x<g2.Td.x); } );
+        return (g1.s!=g2.s)?(g1.s<g2.s) : (abs(g1.Td.y-g2.Td.y)>100)?(g1.Td.y>g2.Td.y) : (g1.Td.x+5<g2.Td.x); } );
 
 printf("writing %ld groups\n", groups.size());
     // generate states changed from previous, before this Tj element
     /*current = initial;*/ current.Tm = ""; //reset current.Tm to create a Tm entry at start
     for (const State& state: groups)
     {
-        if (state.Tm.compare(current.Tm)!=0) {
+        if (true || state.Tm.compare(current.Tm)!=0) {
             printf ("wrot Tm=%s;Td=%d,%d;", state.Tm.c_str(),state.Td.x, state.Td.y);
             catlines.append(state.Tm)   //.append("\n");
                     .append(" ").append(std::to_string(state.Td.x))
@@ -541,6 +545,14 @@ printf("writing %ld groups\n", groups.size());
         printf("\tTf=%s ", state.Tf.c_str());
         printf("\tTj=%s;\n", state.Tj.c_str());
     }
+    State& state=final;
+    if ((state.Td.x != current.Td.x) || (state.Td.y != current.Td.y)) {
+        catlines
+                .append(std::to_string(state.Td.x-current.Td.x)).append(" ")
+                .append(std::to_string(state.Td.y-current.Td.y)).append(" Td\n");
+        printf( "endd Td=%d,%d;", state.Td.x, state.Td.y);
+        printf( "wrot Td=%d,%d;\n", (state.Td.x-current.Td.x), (state.Td.y-current.Td.y));
+        current.Td=state.Td; }
 }
 
 const char* reorderText (char *orig, pdf_long& l) {
@@ -571,10 +583,12 @@ const char* reorderText (char *orig, pdf_long& l) {
             if (std::regex_search( line, std::regex("^\\s*BT\\s*$"))) {
                 printf("\nBT\n");
                 blockStart=current; txtmode = true;
+                continue;
 
             } else {
                 //leave as-is any non-Text lines outside ET..BT
                 catlines.append(line).append("\n");
+                continue;
 
                 //update State where affects Text lines
                 if (std::regex_search( line, std::regex("^\\s*q\\s*$"))) {
@@ -597,8 +611,8 @@ const char* reorderText (char *orig, pdf_long& l) {
                     printf("read Tm=%s;Td=%d,%d;", current.Tm.c_str(), dx, dy);
 
                 }*/
-            }
             continue;
+        }
         }
 
         if (std::regex_search( line, std::regex("^\\s*ET\\s*$"))) {
@@ -609,7 +623,7 @@ const char* reorderText (char *orig, pdf_long& l) {
             catlines.append("ET\n"); printf("ET\n");
             continue;
         }
-#define printf(fmt, ...)
+//#define printf(fmt, ...)
         // Now, these are actions within a txtMode
 
         // set_state(), just record this state & apply to all subsequent lines ..into State current
@@ -633,7 +647,7 @@ const char* reorderText (char *orig, pdf_long& l) {
         // from relative positions, record the absolute position ..into State current
         if (std::regex_search( line, ptn, std::regex("(.*)\\s+(" "((-?[0-9]+)\\s+){2}" ")Tm\\b"))) {
             //std:: cout << "Tm match ("<<line<<"): "; for (auto& e: ptn) std:: cout << e.str() << ";"; std:: cout << "\n";
-            //current.Tm = ptn[0].str();
+            //current.Tm = ptn[0].str(); continue;
             current.Tm = ptn[1].str();
             int dx, dy; sscanf( ptn[2].str().c_str(), "%d %d ", &dx, &dy);
             current.Td.x = dx; current.Td.y = dy;
